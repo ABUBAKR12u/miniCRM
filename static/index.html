@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini CRM</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: #1a1a2e; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 24px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        .btn-primary { background: #4361ee; color: white; }
+        .btn-primary:hover { background: #3a56d4; }
+        .btn-danger { background: #e63946; color: white; }
+        .btn-danger:hover { background: #c5303c; }
+        .btn-success { background: #2a9d8f; color: white; }
+        .btn-success:hover { background: #238b7e; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        .stat-card h3 { font-size: 28px; color: #1a1a2e; }
+        .stat-card p { color: #666; margin-top: 5px; font-size: 14px; }
+        .filters { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .filters input, .filters select { padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .filters input { flex: 1; min-width: 200px; }
+        table { width: 100%; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #1a1a2e; color: white; font-weight: 500; }
+        tr:hover { background: #f8f9fa; }
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .status-New { background: #e3f2fd; color: #1565c0; }
+        .status-Contacted { background: #fff3e0; color: #e65100; }
+        .status-Qualified { background: #f3e5f5; color: #7b1fa2; }
+        .status-Won { background: #e8f5e9; color: #2e7d32; }
+        .status-Lost { background: #ffebee; color: #c62828; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+        .modal h2 { margin-bottom: 20px; color: #1a1a2e; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; color: #333; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .pagination { display: flex; justify-content: center; gap: 10px; margin-top: 20px; align-items: center; }
+        .login-page { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        .login-box h2 { margin-bottom: 25px; text-align: center; color: #1a1a2e; }
+        .hidden { display: none; }
+        .activities-list { max-height: 300px; overflow-y: auto; }
+        .activity-item { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+        .activity-item .time { color: #999; font-size: 11px; }
+    </style>
+</head>
+<body>
+    <div id="loginPage" class="login-page">
+        <div class="login-box">
+            <h2>Mini CRM Login</h2>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="loginUsername" placeholder="Username">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="Password">
+            </div>
+            <button class="btn btn-primary" style="width:100%" onclick="login()">Login</button>
+        </div>
+    </div>
+
+    <div id="appPage" class="container hidden">
+        <div class="header">
+            <h1>Mini CRM</h1>
+            <div>
+                <button class="btn btn-primary" onclick="openCreateModal()">+ New Lead</button>
+                <button class="btn btn-danger" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="stats" id="statsContainer"></div>
+
+        <div class="filters">
+            <input type="text" id="searchInput" placeholder="Search leads..." oninput="debounceSearch()">
+            <select id="statusFilter" onchange="loadLeads()">
+                <option value="">All Status</option>
+                <option value="New">New</option>
+                <option value="Contacted">Contacted</option>
+                <option value="Qualified">Qualified</option>
+                <option value="Won">Won</option>
+                <option value="Lost">Lost</option>
+            </select>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Source</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="leadsTable"></tbody>
+        </table>
+
+        <div class="pagination">
+            <button class="btn btn-sm btn-primary" onclick="changePage(-1)">Prev</button>
+            <span id="pageInfo"></span>
+            <button class="btn btn-sm btn-primary" onclick="changePage(1)">Next</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="createModal">
+        <div class="modal">
+            <h2 id="modalTitle">Create Lead</h2>
+            <div class="form-group">
+                <label>Name *</label>
+                <input type="text" id="leadName" placeholder="Lead name">
+            </div>
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="text" id="leadPhone" placeholder="Phone number">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="leadEmail" placeholder="Email address">
+            </div>
+            <div class="form-group">
+                <label>Source</label>
+                <input type="text" id="leadSource" placeholder="Lead source">
+            </div>
+            <div class="form-group">
+                <label>Note</label>
+                <textarea id="leadNote" placeholder="Additional notes"></textarea>
+            </div>
+            <div class="form-group" id="statusGroup" style="display:none">
+                <label>Status</label>
+                <select id="leadStatus">
+                    <option value="New">New</option>
+                    <option value="Contacted">Contacted</option>
+                    <option value="Qualified">Qualified</option>
+                    <option value="Won">Won</option>
+                    <option value="Lost">Lost</option>
+                </select>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px">
+                <button class="btn btn-primary" onclick="saveLead()">Save</button>
+                <button class="btn btn-danger" onclick="closeModal('createModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="activityModal">
+        <div class="modal">
+            <h2>Lead Activity</h2>
+            <div class="activities-list" id="activitiesList"></div>
+            <button class="btn btn-primary" style="margin-top:15px" onclick="closeModal('activityModal')">Close</button>
+        </div>
+    </div>
+
+    <script>
+        const API = 'http://localhost:8000';
+        let token = localStorage.getItem('access_token');
+        let currentPage = 1;
+        let totalPages = 1;
+        let editingId = null;
+        let searchTimeout = null;
+
+        function authHeaders() {
+            return { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+        }
+
+        async function apiCall(url, method = 'GET', body = null) {
+            const opts = { method, headers: authHeaders() };
+            if (body) opts.body = JSON.stringify(body);
+            const res = await fetch(API + url, opts);
+            if (res.status === 401) { logout(); return null; }
+            if (!res.ok) {
+                const err = await res.json();
+                alert(err.detail || 'Error');
+                return null;
+            }
+            return res.json();
+        }
+
+        async function login() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            const res = await fetch(API + '/login/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                token = data.access_token;
+                localStorage.setItem('access_token', token);
+                showApp();
+            } else {
+                alert('Invalid credentials');
+            }
+        }
+
+        function logout() {
+            token = null;
+            localStorage.removeItem('access_token');
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('appPage').classList.add('hidden');
+        }
+
+        function showApp() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('appPage').classList.remove('hidden');
+            loadStats();
+            loadLeads();
+        }
+
+        async function loadStats() {
+            const data = await apiCall('/dashboard/stats');
+            if (!data) return;
+            document.getElementById('statsContainer').innerHTML = `
+                <div class="stat-card"><h3>${data.total}</h3><p>Total</p></div>
+                <div class="stat-card"><h3>${data.new}</h3><p>New</p></div>
+                <div class="stat-card"><h3>${data.contacted}</h3><p>Contacted</p></div>
+                <div class="stat-card"><h3>${data.qualified}</h3><p>Qualified</p></div>
+                <div class="stat-card"><h3>${data.won}</h3><p>Won</p></div>
+                <div class="stat-card"><h3>${data.lost}</h3><p>Lost</p></div>
+            `;
+        }
+
+        async function loadLeads() {
+            const search = document.getElementById('searchInput').value;
+            const status = document.getElementById('statusFilter').value;
+            let url = `/leads/?page=${currentPage}&size=10`;
+            if (search) url += `&search=${encodeURIComponent(search)}`;
+            if (status) url += `&status=${status}`;
+            const data = await apiCall(url);
+            if (!data) return;
+            totalPages = data.pages || 1;
+            document.getElementById('pageInfo').textContent = `Page ${data.page} of ${totalPages}`;
+            const tbody = document.getElementById('leadsTable');
+            tbody.innerHTML = data.items.map(lead => `
+                <tr>
+                    <td>${lead.id}</td>
+                    <td>${lead.name}</td>
+                    <td>${lead.phone || '-'}</td>
+                    <td>${lead.email || '-'}</td>
+                    <td>${lead.source || '-'}</td>
+                    <td><span class="status-badge status-${lead.status}">${lead.status}</span></td>
+                    <td>${lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="openEditModal(${lead.id})">Edit</button>
+                        <button class="btn btn-sm btn-success" onclick="showActivities(${lead.id})">History</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteLead(${lead.id})">Del</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function debounceSearch() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => { currentPage = 1; loadLeads(); }, 400);
+        }
+
+        function changePage(dir) {
+            currentPage += dir;
+            if (currentPage < 1) currentPage = 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            loadLeads();
+        }
+
+        function openCreateModal() {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = 'Create Lead';
+            document.getElementById('statusGroup').style.display = 'none';
+            document.getElementById('leadName').value = '';
+            document.getElementById('leadPhone').value = '';
+            document.getElementById('leadEmail').value = '';
+            document.getElementById('leadSource').value = '';
+            document.getElementById('leadNote').value = '';
+            document.getElementById('createModal').classList.add('active');
+        }
+
+        async function openEditModal(id) {
+            const lead = await apiCall(`/leads/${id}`);
+            if (!lead) return;
+            editingId = id;
+            document.getElementById('modalTitle').textContent = 'Edit Lead';
+            document.getElementById('statusGroup').style.display = 'block';
+            document.getElementById('leadName').value = lead.name || '';
+            document.getElementById('leadPhone').value = lead.phone || '';
+            document.getElementById('leadEmail').value = lead.email || '';
+            document.getElementById('leadSource').value = lead.source || '';
+            document.getElementById('leadNote').value = lead.note || '';
+            document.getElementById('leadStatus').value = lead.status;
+            document.getElementById('createModal').classList.add('active');
+        }
+
+        async function saveLead() {
+            const body = {
+                name: document.getElementById('leadName').value,
+                phone: document.getElementById('leadPhone').value,
+                email: document.getElementById('leadEmail').value,
+                source: document.getElementById('leadSource').value,
+                note: document.getElementById('leadNote').value
+            };
+            if (!body.name) { alert('Name is required'); return; }
+
+            if (editingId) {
+                body.status = document.getElementById('leadStatus').value;
+                await apiCall(`/leads/${editingId}`, 'PUT', body);
+            } else {
+                await apiCall('/leads/', 'POST', body);
+            }
+            closeModal('createModal');
+            loadLeads();
+            loadStats();
+        }
+
+        async function deleteLead(id) {
+            if (!confirm('Delete this lead?')) return;
+            await apiCall(`/leads/${id}`, 'DELETE');
+            loadLeads();
+            loadStats();
+        }
+
+        async function showActivities(id) {
+            const activities = await apiCall(`/leads/${id}/activities`);
+            if (!activities) return;
+            document.getElementById('activitiesList').innerHTML = activities.map(a => `
+                <div class="activity-item">
+                    <div>${a.action}: ${a.detail || ''}</div>
+                    <div class="time">${a.created_at ? new Date(a.created_at).toLocaleString() : ''}</div>
+                </div>
+            `).join('') || '<p>No activities yet</p>';
+            document.getElementById('activityModal').classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        if (token) { showApp(); }
+    </script>
+</body>
+</html>
