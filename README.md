@@ -53,21 +53,27 @@ uvicorn app.main:app --reload
 
 6. Open http://localhost:8000 for the frontend or http://localhost:8000/docs for API documentation.
 
-## Creating First User
+## Default Login (Boss)
 
-The first user (with role "boss") must be created directly in the database. Use a Python script to hash the password:
+Main boss account:
+
+| Username | Password | Role |
+|----------|----------|------|
+| `admin` | `admin123` | `boss` |
+
+Login with this account, then add new admins/users from the "Jamoa" (Team) page in the sidebar.
+
+If the user does not exist yet, create it with:
 
 ```python
+from app.database.connection import SessionLocal
+from app.models.Login import Login
 from app.utils.securty import hash_password
-print(hash_password("your_password"))
-```
 
-Then insert:
-```sql
-INSERT INTO Login (username, password, role) VALUES ('admin', 'hashed_password_here', 'boss');
+db = SessionLocal()
+db.add(Login(username="admin", password=hash_password("admin123"), role="boss"))
+db.commit()
 ```
-
-After that, use the "boss" account to create additional users via `/create_login/newlogin`.
 
 ## API Endpoints
 
