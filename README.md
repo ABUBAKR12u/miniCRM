@@ -55,19 +55,19 @@ uvicorn app.main:app --reload
 
 ## Creating First User
 
-The first user (with role "boss") must be created directly in the database:
+The first user (with role "boss") must be created directly in the database. Use a Python script to hash the password:
 
-```sql
-INSERT INTO Login (username, password, role) VALUES ('admin', '$argon2id$...', 'boss');
-```
-
-Or use a Python script:
 ```python
 from app.utils.securty import hash_password
 print(hash_password("your_password"))
 ```
 
-Then insert the hashed password. After that, use the "boss" account to create additional users via `/create_login/newlogin`.
+Then insert:
+```sql
+INSERT INTO Login (username, password, role) VALUES ('admin', 'hashed_password_here', 'boss');
+```
+
+After that, use the "boss" account to create additional users via `/create_login/newlogin`.
 
 ## API Endpoints
 
