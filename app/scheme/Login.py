@@ -3,6 +3,7 @@ from pydantic import BaseModel
 class AddLogin(BaseModel):
     username: str
     password: str
+    role: str = "user"
 
 class UpdateLogin(AddLogin):
     pass
